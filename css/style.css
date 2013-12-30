@@ -5,17 +5,17 @@ body {
 .axis path,
 .axis line {
   fill: none;
-  stroke: #000;
+  /* stroke: #000; */
+  /* shape-rendering: crispEdges; */
+}
+
+.axis line {
   shape-rendering: crispEdges;
+  stroke: #ddd;
+  stroke-dasharray: 2,2;
 }
 
-.x.axis path {
-  display: none;
+.axis .minor line {
 }
 
-.line {
-  fill: none;
-  stroke: steelblue;
-  stroke-width: 1.5px;
-}
 

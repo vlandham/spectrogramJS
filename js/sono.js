@@ -8,8 +8,8 @@ var FFT_SIZE = 2048;
 // var SAMPLE = 2048;
 // var SAMPLE = 1024;
 var SAMPLE = 512;
-var MIN_DEC = -140.0;
-var MAX_DEC = 100.0;
+var MIN_DEC = -80.0;
+var MAX_DEC = 80.0;
 
 function VisualizerSample() {
   this.analyser = context.createAnalyser();
@@ -97,22 +97,29 @@ VisualizerSample.prototype.setupVisual = function() {
     .range([height,0]);
 
   this.zScale = d3.scale.linear()
-    .domain([-2, MAX_DEC])
-    .range(["white", "purple"])
+    .domain([MIN_DEC, MAX_DEC])
+    // .range(["white", "purple"])
+    .range(["white", "black"])
     .interpolate(d3.interpolateLab);
 
+  var commasFormatter = d3.format(",.1f");
   this.xAxis = d3.svg.axis()
     .scale(this.xScale)
-    .orient("bottom");
+    .orient("bottom")
+    .tickSize(-height, 0, 0)
+    .tickFormat(function(d) {return commasFormatter(d) + "s";});
 
   this.yAxis = d3.svg.axis()
     .scale(this.yScale)
-    .orient("left");
+    .orient("left")
+    .tickSize(-width, 0, 0)
+    .tickFormat(function(d) {return d3.round(d / 1000, 0) + "k";});
   
   this.svg.append("g")
     .attr("class", "x axis")
     .attr("transform", "translate(0," + height + ")")
     .call(this.xAxis);
+
 
   this.svg.append("g")
     .attr("class", "y axis")
@@ -153,6 +160,14 @@ VisualizerSample.prototype.togglePlayback = function() {
 
 VisualizerSample.prototype.draw = function() {
   var that = this;
+
+  var min = d3.min(this.data, function(d) { return d3.min(d.values)});
+  console.log(min);
+  var max = d3.max(this.data, function(d) { return d3.max(d.values)});
+  console.log(max);
+
+  this.zScale.domain([min + 20, max - 20]);
+    
 
   var date = this.svg.selectAll(".date")
     .data(this.data)
