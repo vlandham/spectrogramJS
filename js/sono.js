@@ -2,7 +2,6 @@
 // var WIDTH = 640;
 // var HEIGHT = 360;
 
-// Interesting parameters to tweak!
 var SMOOTHING = 0.0;
 var FFT_SIZE = 2048;
 // var SAMPLE = 2048;
@@ -71,11 +70,18 @@ VisualizerSample.prototype.setupVisual = function() {
   var width = 900;
   var height = 500;
   var margin = {top: 20, right: 20, bottom: 30, left: 50};
+
   this.svg = d3.select("#vis").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  this.canvas = d3.select("#vis").append("canvas")
+    .attr("id", "vis_canvas")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .style("padding", d3.map(margin).values().join("px ") + "px");
 
   console.log(this.buffer.duration);
 
@@ -167,23 +173,37 @@ VisualizerSample.prototype.draw = function() {
   console.log(max);
 
   this.zScale.domain([min + 20, max - 20]);
-    
 
-  var date = this.svg.selectAll(".date")
-    .data(this.data)
-    .enter().append("g")
-    .attr("class", "date")
-    .attr("transform", function(d) { return "translate(" + that.xScale(d.key) + ",0)"; });
+  var visContext = document.getElementById('vis_canvas').getContext('2d');
+  // var visContext = this.canvas.getContext('2d');
 
-  date.selectAll(".bin")
-    .data(function(d) { return d.values; })
-    .enter().append("rect")
-    .attr("class", "bin")
-    .attr("y", function(d,i) { return that.yScale(that.getBinFrequency(i)); })
-    // .attr("height", function(d) { return y(d.x) - y(d.x + d.dx); })
-    .attr("height", function(d) { return that.dotHeight; })
-    .attr("width", function(d) { return that.dotWidth; })
-    .style("fill", function(d) { return that.zScale(d); });
+  this.data.forEach(function(d) {
+    for(var i = 0; i < d.values.length - 1; i++) {
+      var v = d.values[i];
+      // visContext.beginPath();
+      var x = that.xScale(d.key);
+      var y = that.yScale(that.getBinFrequency(i));
+      visContext.fillStyle = that.zScale(v);
+      visContext.fillRect(x,y,that.dotWidth, that.dotHeight);
+    }
+  });
+
+
+  // var date = this.svg.selectAll(".date")
+  //   .data(this.data)
+  //   .enter().append("g")
+  //   .attr("class", "date")
+  //   .attr("transform", function(d) { return "translate(" + that.xScale(d.key) + ",0)"; });
+
+  // date.selectAll(".bin")
+  //   .data(function(d) { return d.values; })
+  //   .enter().append("rect")
+  //   .attr("class", "bin")
+  //   .attr("y", function(d,i) { return that.yScale(that.getBinFrequency(i)); })
+  //   // .attr("height", function(d) { return y(d.x) - y(d.x + d.dx); })
+  //   .attr("height", function(d) { return that.dotHeight; })
+  //   .attr("width", function(d) { return that.dotWidth; })
+  //   .style("fill", function(d) { return that.zScale(d); });
 
   
   // var width = Math.floor(1/this.freqs.length, 10);
