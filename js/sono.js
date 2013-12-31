@@ -70,13 +70,23 @@ VisualizerSample.prototype.setupVisual = function() {
     .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-  this.canvas = d3.select("#vis").append("canvas")
+  this.canvas = d3.select(this.selector).append("canvas")
     .attr("id", "vis_canvas")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
+    .attr("width", width + margin.left)
+    .attr("height", height + margin.top)
     .style("padding", d3.map(margin).values().join("px ") + "px");
 
-  console.log(this.buffer.duration);
+  var that = this;
+  var button_id = this.selector + "_button";
+  d3.select(this.selector).append("button")
+    .style("margin-top", height + margin.top + margin.bottom + 20 + "px")
+    // .style("display", "block")
+    .attr("id", button_id)
+    .text("analyze")
+    .on("click", function() {
+      that.togglePlayback();
+    });
+
 
   this.maxCount = (context.sampleRate / SAMPLE) * this.buffer.duration;
 
@@ -105,7 +115,8 @@ VisualizerSample.prototype.setupVisual = function() {
   this.xAxis = d3.svg.axis()
     .scale(this.xScale)
     .orient("bottom")
-    .tickSize(-height, 0, 0)
+    .tickSize(-height)
+    .tickPadding(10)
     .tickFormat(function(d) {return commasFormatter(d) + "s";});
 
   this.yAxis = d3.svg.axis()

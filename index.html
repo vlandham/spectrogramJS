@@ -6,19 +6,18 @@
     <title></title>
   </head>
   <body>
-    <button style="display: block">Analyze</button>
-    <div id="vis">
-    </div>
+    <!-- <button style="display: block">Analyze</button> -->
+    <div id="vis" class="spectrogram"></div>
     
     <script type="text/javascript" src="js/jquery-2.0.3.min.js"></script>
     <script type="text/javascript" src="js/d3.v3.min.js"></script>
     <script type="text/javascript" src="js/shared.js"></script>
     <script type="text/javascript" src="js/sono.js"></script>
     <script>
+// document.querySelector('button').addEventListener('click', function() {
+//   sample.togglePlayback()
+// });
       var sample = new VisualizerSample('data/bird_short.ogg', "#vis");
-      document.querySelector('button').addEventListener('click', function() {
-        sample.togglePlayback()
-      });
     </script>
     
   </body>
