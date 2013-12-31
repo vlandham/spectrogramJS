@@ -6,7 +6,7 @@
     <title></title>
   </head>
   <body>
-    <button style="display: block">Play/pause</button>
+    <button style="display: block">Analyze</button>
     <div id="vis">
     </div>
     
@@ -15,7 +15,7 @@
     <script type="text/javascript" src="js/shared.js"></script>
     <script type="text/javascript" src="js/sono.js"></script>
     <script>
-      var sample = new VisualizerSample();
+      var sample = new VisualizerSample('data/bird_short.ogg', "#vis");
       document.querySelector('button').addEventListener('click', function() {
         sample.togglePlayback()
       });

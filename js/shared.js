@@ -1,5 +1,7 @@
 // Start off by initializing a new context.
 context = new webkitAudioContext();
+// context = new webkitOfflineAudioContext(2, 7*48000, 48000);
+// context = new webkitOfflineAudioContext(2, 7*48000, 48000); 
 
 // shim layer with setTimeout fallback
 window.requestAnimFrame = (function(){
@@ -42,8 +44,6 @@ function loadSounds(obj, soundMap, callback) {
   });
   bufferLoader.load();
 }
-
-
 
 
 function BufferLoader(context, urlList, callback) {

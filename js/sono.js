@@ -10,7 +10,9 @@ var SAMPLE = 512;
 var MIN_DEC = -80.0;
 var MAX_DEC = 80.0;
 
-function VisualizerSample() {
+function VisualizerSample(filename, selector) {
+  this.selector = selector;
+  this.filename = filename;
   this.analyser = context.createAnalyser();
   this.javascriptNode = context.createScriptProcessor(SAMPLE, 1, 1);
 
@@ -22,8 +24,7 @@ function VisualizerSample() {
   this.analyser.fftSize = FFT_SIZE;
 
   loadSounds(this, {
-    buffer: 'data/bird_short.ogg'
-    //buffer: 'sound.wav'
+    buffer: this.filename
   }, this.setupVisual.bind(this));
   this.freqs = new Uint8Array(this.analyser.frequencyBinCount);
   // this.times = new Uint8Array(this.analyser.frequencyBinCount);
@@ -46,15 +47,7 @@ VisualizerSample.prototype.process = function(e) {
     this.count += 1;
     this.curSample += SAMPLE;
     this.curSec =  (SAMPLE * this.count) / this.buffer.sampleRate;
-    console.log(this.curSec);
-    // console.log(this.curSample);
-    // console.log(this.curSec);
     this.analyser.getByteFrequencyData(this.freqs);
-    // this.analyser.getFloatFrequencyData(this.freqsFloat);
-    // if(this.count == 40) {
-    //   console.log(this.data);
-    // }
-    // this.analyser.getByteTimeDomainData(this.times);
 
     var d = {'key':this.curSec, 'values':new Uint8Array(this.freqs)};
     this.data.push(d);
@@ -71,7 +64,7 @@ VisualizerSample.prototype.setupVisual = function() {
   var height = 500;
   var margin = {top: 20, right: 20, bottom: 30, left: 50};
 
-  this.svg = d3.select("#vis").append("svg")
+  this.svg = d3.select(this.selector).append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
@@ -177,6 +170,7 @@ VisualizerSample.prototype.draw = function() {
   var visContext = document.getElementById('vis_canvas').getContext('2d');
   // var visContext = this.canvas.getContext('2d');
 
+  // display as canvas here.
   this.data.forEach(function(d) {
     for(var i = 0; i < d.values.length - 1; i++) {
       var v = d.values[i];
