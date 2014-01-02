@@ -1,11 +1,6 @@
 
-// var WIDTH = 640;
-// var HEIGHT = 360;
-
 var SMOOTHING = 0.0;
 var FFT_SIZE = 2048;
-// var SAMPLE = 2048;
-// var SAMPLE = 1024;
 var SAMPLE = 512;
 var MIN_DEC = -80.0;
 var MAX_DEC = 80.0;
@@ -16,7 +11,6 @@ function VisualizerSample(filename, selector) {
   this.analyser = context.createAnalyser();
   this.javascriptNode = context.createScriptProcessor(SAMPLE, 1, 1);
 
-  // this.analyser.connect(context.destination);
   this.analyser.minDecibels = MIN_DEC;
   this.analyser.maxDecibels = MAX_DEC;
 
@@ -26,24 +20,22 @@ function VisualizerSample(filename, selector) {
   loadSounds(this, {
     buffer: this.filename
   }, this.setupVisual.bind(this));
+
   this.freqs = new Uint8Array(this.analyser.frequencyBinCount);
-  // this.times = new Uint8Array(this.analyser.frequencyBinCount);
   this.data = [];
-  // this.freqsFloat = new Float32Array(this.analyser.frequencyBinCount);
 
   this.isPlaying = false;
+  this.isLoaded = false;
   this.startTime = 0;
   this.startOffset = 0;
   this.count = 0;
   this.curSec = 0;
   this.curSample = 0;
   this.maxCount = 0;
-  // this.setupVisual();
 }
 
 VisualizerSample.prototype.process = function(e) {
-  if(this.isPlaying) {
-    // console.log(this.javascriptNode.bufferSize);
+  if(this.isPlaying && !this.isLoaded) {
     this.count += 1;
     this.curSample += SAMPLE;
     this.curSec =  (SAMPLE * this.count) / this.buffer.sampleRate;
@@ -53,7 +45,6 @@ VisualizerSample.prototype.process = function(e) {
     this.data.push(d);
     if(this.count >= this.maxCount) {
       this.togglePlayback()
-      // console.log(this.count);
       this.draw();
     }
   }
@@ -80,21 +71,16 @@ VisualizerSample.prototype.setupVisual = function() {
   var button_id = this.selector + "_button";
   d3.select(this.selector).append("button")
     .style("margin-top", height + margin.top + margin.bottom + 20 + "px")
-    // .style("display", "block")
     .attr("id", button_id)
     .text("play")
     .on("click", function() {
       that.togglePlayback();
     });
 
-
   this.maxCount = (context.sampleRate / SAMPLE) * this.buffer.duration;
 
-  // console.log(context.sampleRate);
   this.dotWidth = width / this.maxCount;
   this.dotHeight = height / this.analyser.frequencyBinCount;
-  // console.log(this.dotWidth);
-
 
   this.xScale = d3.scale.linear()
     .domain([0, this.buffer.duration])
@@ -106,7 +92,6 @@ VisualizerSample.prototype.setupVisual = function() {
 
   this.zScale = d3.scale.linear()
     .domain([MIN_DEC, MAX_DEC])
-    // .range(["white", "purple"])
     .range(["white", "black"])
     .interpolate(d3.interpolateLab);
 
@@ -136,9 +121,14 @@ VisualizerSample.prototype.setupVisual = function() {
     .call(this.yAxis)
 }
 
+VisualizerSample.prototype.showProgress = function() {
+  if(this.isPlaying && this.isLoaded) {
+  }
+}
+
 // Toggle playback
 VisualizerSample.prototype.togglePlayback = function() {
-  if (this.isPlaying) {
+  if (this.isPlaying  && !this.isLoaded) {
     // Stop playback
     this.source.noteOff(0);
     this.startOffset += context.currentTime - this.startTime;
@@ -150,8 +140,8 @@ VisualizerSample.prototype.togglePlayback = function() {
     this.source = context.createBufferSource();
     this.source.buffer = this.buffer;
     this.analyser.buffer = this.buffer;
-    // this.javascriptNode.buffer = this.buffer;
     this.javascriptNode.onaudioprocess = this.process.bind(this);
+
     // Connect graph
     this.source.connect(this.analyser);
     this.analyser.connect(this.javascriptNode);
@@ -172,20 +162,15 @@ VisualizerSample.prototype.draw = function() {
   var that = this;
 
   var min = d3.min(this.data, function(d) { return d3.min(d.values)});
-  console.log(min);
   var max = d3.max(this.data, function(d) { return d3.max(d.values)});
-  console.log(max);
-
   this.zScale.domain([min + 20, max - 20]);
 
   var visContext = document.getElementById('vis_canvas').getContext('2d');
-  // var visContext = this.canvas.getContext('2d');
 
   // display as canvas here.
   this.data.forEach(function(d) {
     for(var i = 0; i < d.values.length - 1; i++) {
       var v = d.values[i];
-      // visContext.beginPath();
       var x = that.xScale(d.key);
       var y = that.yScale(that.getBinFrequency(i));
       visContext.fillStyle = that.zScale(v);
@@ -193,52 +178,7 @@ VisualizerSample.prototype.draw = function() {
     }
   });
 
-
-  // var date = this.svg.selectAll(".date")
-  //   .data(this.data)
-  //   .enter().append("g")
-  //   .attr("class", "date")
-  //   .attr("transform", function(d) { return "translate(" + that.xScale(d.key) + ",0)"; });
-
-  // date.selectAll(".bin")
-  //   .data(function(d) { return d.values; })
-  //   .enter().append("rect")
-  //   .attr("class", "bin")
-  //   .attr("y", function(d,i) { return that.yScale(that.getBinFrequency(i)); })
-  //   // .attr("height", function(d) { return y(d.x) - y(d.x + d.dx); })
-  //   .attr("height", function(d) { return that.dotHeight; })
-  //   .attr("width", function(d) { return that.dotWidth; })
-  //   .style("fill", function(d) { return that.zScale(d); });
-
-  
-  // var width = Math.floor(1/this.freqs.length, 10);
-
-  // var canvas = document.querySelector('canvas');
-  // var drawContext = canvas.getContext('2d');
-  // canvas.width = WIDTH;
-  // canvas.height = HEIGHT;
-  // // Draw the frequency domain chart.
-  // for (var i = 0; i < this.analyser.frequencyBinCount; i++) {
-  //   var value = this.freqs[i];
-  //   var percent = value / 256;
-  //   var height = HEIGHT * percent;
-  //   var offset = HEIGHT - height - 1;
-  //   var barWidth = WIDTH/this.analyser.frequencyBinCount;
-  //   var hue = i/this.analyser.frequencyBinCount * 360;
-  //   drawContext.fillStyle = 'hsl(' + hue + ', 100%, 50%)';
-  //   drawContext.fillRect(i * barWidth, offset, barWidth, height);
-  // }
-
-  // Draw the time domain chart.
-  // for (var i = 0; i < this.analyser.frequencyBinCount; i++) {
-  //   var value = this.times[i];
-  //   var percent = value / 256;
-  //   var height = HEIGHT * percent;
-  //   var offset = HEIGHT - height - 1;
-  //   var barWidth = WIDTH/this.analyser.frequencyBinCount;
-  //   drawContext.fillStyle = 'white';
-  //   drawContext.fillRect(i * barWidth, offset, 1, 2);
-  // }
+  this.isLoaded = true;
 
   if (this.isPlaying) {
     // requestAnimFrame(this.draw.bind(this));
