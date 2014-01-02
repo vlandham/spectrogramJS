@@ -82,14 +82,13 @@ VisualizerSample.prototype.setupVisual = function() {
     .style("margin-top", height + margin.top + margin.bottom + 20 + "px")
     // .style("display", "block")
     .attr("id", button_id)
-    .text("analyze")
+    .text("play")
     .on("click", function() {
       that.togglePlayback();
     });
 
 
   this.maxCount = (context.sampleRate / SAMPLE) * this.buffer.duration;
-
 
   // console.log(context.sampleRate);
   this.dotWidth = width / this.maxCount;
@@ -115,24 +114,25 @@ VisualizerSample.prototype.setupVisual = function() {
   this.xAxis = d3.svg.axis()
     .scale(this.xScale)
     .orient("bottom")
-    .tickSize(-height)
+    .tickSize(-height - 15)
     .tickPadding(10)
     .tickFormat(function(d) {return commasFormatter(d) + "s";});
 
   this.yAxis = d3.svg.axis()
     .scale(this.yScale)
     .orient("left")
-    .tickSize(-width, 0, 0)
+    .tickSize(-width - 10, 0, 0)
+    .tickPadding(10)
     .tickFormat(function(d) {return d3.round(d / 1000, 0) + "k";});
   
   this.svg.append("g")
     .attr("class", "x axis")
-    .attr("transform", "translate(0," + height + ")")
+    .attr("transform", "translate(0," + (height + 10)  + ")")
     .call(this.xAxis);
-
 
   this.svg.append("g")
     .attr("class", "y axis")
+    .attr("transform", "translate(" + (-10) + ",0)")
     .call(this.yAxis)
 }
 

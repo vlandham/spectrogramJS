@@ -1,5 +1,5 @@
 body {
-  font: 10px sans-serif;
+  font: 14px sans-serif;
 }
 
 canvas, svg {
@@ -21,9 +21,9 @@ canvas, svg {
 
 .axis line {
   shape-rendering: crispEdges;
-  stroke: #ddd;
-  stroke-width: 1.3px;
-  stroke-dasharray: 2,2;
+  stroke: #444;
+  stroke-width: 1.0px;
+  stroke-dasharray: 2,4;
 }
 
 .axis .minor line {
