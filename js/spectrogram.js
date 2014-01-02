@@ -30,14 +30,12 @@ function VisualizerSample(filename, selector) {
   this.startOffset = 0;
   this.count = 0;
   this.curSec = 0;
-  this.curSample = 0;
   this.maxCount = 0;
 }
 
 VisualizerSample.prototype.process = function(e) {
   if(this.isPlaying && !this.isLoaded) {
     this.count += 1;
-    this.curSample += SAMPLE;
     this.curSec =  (SAMPLE * this.count) / this.buffer.sampleRate;
     this.analyser.getByteFrequencyData(this.freqs);
 
@@ -66,6 +64,8 @@ VisualizerSample.prototype.setupVisual = function() {
     .attr("width", width + margin.left)
     .attr("height", height + margin.top)
     .style("padding", d3.map(margin).values().join("px ") + "px");
+
+  this.progressLine = this.svg.append("line");
 
   var that = this;
   var button_id = this.selector + "_button";
@@ -123,6 +123,13 @@ VisualizerSample.prototype.setupVisual = function() {
 
 VisualizerSample.prototype.showProgress = function() {
   if(this.isPlaying && this.isLoaded) {
+    this.count += 1;
+    this.curSec =  (SAMPLE * this.count) / this.buffer.sampleRate;
+    console.log(this.progressLine);
+    requestAnimFrame(this.showProgress.bind(this));
+    if(this.count >= this.maxCount) {
+      this.togglePlayback()
+    }
   }
 }
 
@@ -135,6 +142,8 @@ VisualizerSample.prototype.togglePlayback = function() {
     console.log('paused at', this.startOffset);
     // Save the position of the play head.
   } else {
+    this.count = 0;
+    this.curSec = 0;
     this.startTime = context.currentTime;
     console.log('started at', this.startOffset);
     this.source = context.createBufferSource();
@@ -150,10 +159,11 @@ VisualizerSample.prototype.togglePlayback = function() {
     this.javascriptNode.connect(context.destination);
 
     this.source.loop = false;
-    // Start playback, but make sure we stay in bound of the buffer.
     this.source.start(0, this.startOffset % this.buffer.duration);
-    // Start visualizer.
-    // requestAnimFrame(this.draw.bind(this));
+    
+    if (this.isLoaded) {
+      requestAnimFrame(this.showProgress.bind(this));
+    }
   }
   this.isPlaying = !this.isPlaying;
 }
@@ -179,10 +189,6 @@ VisualizerSample.prototype.draw = function() {
   });
 
   this.isLoaded = true;
-
-  if (this.isPlaying) {
-    // requestAnimFrame(this.draw.bind(this));
-  }
 }
 
 VisualizerSample.prototype.getFrequencyValue = function(freq) {
