@@ -1,6 +1,7 @@
 
 var SMOOTHING = 0.0;
 var FFT_SIZE = 2048;
+// var SAMPLE = 512;
 var SAMPLE = 512;
 var MIN_DEC = -80.0;
 var MAX_DEC = 80.0;
@@ -45,51 +46,72 @@ VisualizerSample.prototype.process = function(e) {
     if(this.count >= this.maxCount) {
       this.togglePlayback()
       this.draw();
+      this.isLoaded = true;
     }
   }
 }
 
 VisualizerSample.prototype.setupVisual = function() {
-  var width = 900;
-  var height = HEIGHT;
-  var margin = {top: 20, right: 20, bottom: 30, left: 50};
+  this.width = 900;
+  this.height = HEIGHT;
+  this.margin = {top: 20, right: 20, bottom: 30, left: 50};
 
   this.svg = d3.select(this.selector).append("svg")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
+    .attr("width", this.width + this.margin.left + this.margin.right)
+    .attr("height", this.height + this.margin.top + this.margin.bottom)
     .append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    .attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
 
   this.canvas = d3.select(this.selector).append("canvas")
     .attr("id", "vis_canvas")
-    .attr("width", width + margin.left)
-    .attr("height", height + margin.top)
-    .style("padding", d3.map(margin).values().join("px ") + "px");
+    .attr("width", this.width + this.margin.left)
+    .attr("height", this.height + this.margin.top)
+    .style("padding", d3.map(this.margin).values().join("px ") + "px");
 
   this.progressLine = this.svg.append("line");
 
   var that = this;
   var button_id = this.selector + "_button";
   this.button = d3.select(this.selector).append("button")
-    .style("margin-top", height + margin.top + margin.bottom + 20 + "px")
+    .style("margin-top", this.height + this.margin.top + this.margin.bottom + 20 + "px")
     .attr("id", button_id)
     .text("play")
     .on("click", function() {
       that.togglePlayback();
     });
 
+  var freqs = [];
+  for(i = 64; i < this.analyser.frequencyBinCount; i += 64) {
+    freqs.push(d3.round(this.getBinFrequency(i), 0));
+  }
+  console.log(freqs);
+  this.freqSelect = d3.select(this.selector).append("select")
+    .style("margin-top", this.height + this.margin.top + this.margin.bottom + 20 + "px")
+    .style("margin-left", "20px")
+    .on("change", function() {
+      var newFreq = this.options[this.selectedIndex].value
+      console.log(newFreq);
+      that.yScale.domain([0, newFreq]);
+      that.draw();
+    });
+
+  this.freqSelect.selectAll('option')
+    .data(freqs).enter()
+    .append("option")
+    .attr("value", function(d) { return d;})
+    .attr("selected", function(d,i) { return (d == 11047) ? "selected" : null;})
+    .text(function(d) { return d3.round(d / 1000) + "k";});
+
   this.maxCount = (context.sampleRate / SAMPLE) * this.buffer.duration;
 
-  this.dotWidth = width / this.maxCount;
-  this.dotHeight = height / this.analyser.frequencyBinCount;
 
   this.xScale = d3.scale.linear()
     .domain([0, this.buffer.duration])
-    .range([0, width]);
+    .range([0, this.width]);
 
   this.yScale = d3.scale.linear()
     .domain([this.getBinFrequency(0), this.getBinFrequency(this.analyser.frequencyBinCount / 2)])
-    .range([height,0]);
+    .range([this.height,0]);
 
   this.zScale = d3.scale.linear()
     .domain([MIN_DEC, MAX_DEC])
@@ -100,26 +122,31 @@ VisualizerSample.prototype.setupVisual = function() {
   this.xAxis = d3.svg.axis()
     .scale(this.xScale)
     .orient("bottom")
-    .tickSize(-height - 15)
+    .tickSize(-this.height - 15)
     .tickPadding(10)
     .tickFormat(function(d) {return commasFormatter(d) + "s";});
 
   this.yAxis = d3.svg.axis()
     .scale(this.yScale)
     .orient("left")
-    .tickSize(-width - 10, 0, 0)
+    .tickSize(-this.width - 10, 0, 0)
     .tickPadding(10)
     .tickFormat(function(d) {return d3.round(d / 1000, 0) + "k";});
   
   this.svg.append("g")
     .attr("class", "x axis")
-    .attr("transform", "translate(0," + (height + 10)  + ")")
+    .attr("transform", "translate(0," + (this.height + 10)  + ")")
     .call(this.xAxis);
 
   this.svg.append("g")
     .attr("class", "y axis")
     .attr("transform", "translate(" + (-10) + ",0)")
     .call(this.yAxis)
+
+  // this.dotHeight = this.height / this.analyser.frequencyBinCount;
+  // this.dotHeight = this.height / this.yScale.domain()[1];
+  // console.log(this.dotHeight);
+  // console.log(this.yScale.domain());
 }
 
 VisualizerSample.prototype.showProgress = function() {
@@ -132,7 +159,7 @@ VisualizerSample.prototype.showProgress = function() {
       .attr("x1", function() {return that.xScale(that.curDuration);})
       .attr("x2", function() {return that.xScale(that.curDuration);})
       .attr("y1", 0)
-      .attr("y2", HEIGHT)
+      .attr("y2", this.height)
       .attr("stroke",'red')
       .attr("stroke-width", 2.0);
 
@@ -189,7 +216,17 @@ VisualizerSample.prototype.draw = function() {
   var max = d3.max(this.data, function(d) { return d3.max(d.values)});
   this.zScale.domain([min + 20, max - 20]);
 
+  this.dotWidth = this.width / this.maxCount;
+  this.dotHeight = this.height / this.analyser.frequencyBinCount;
+  // this.dotHeight = this.height / this.yScale.domain()[1];
+
+
   var visContext = document.getElementById('vis_canvas').getContext('2d');
+
+  this.svg.select(".x.axis").call(this.xAxis);
+  this.svg.select(".y.axis").call(this.yAxis);
+
+  visContext.clearRect( 0, 0, this.width + this.margin.left, this.height );
 
   // display as canvas here.
   this.data.forEach(function(d) {
@@ -201,8 +238,6 @@ VisualizerSample.prototype.draw = function() {
       visContext.fillRect(x,y,that.dotWidth, that.dotHeight);
     }
   });
-
-  this.isLoaded = true;
 }
 
 VisualizerSample.prototype.getFrequencyValue = function(freq) {
