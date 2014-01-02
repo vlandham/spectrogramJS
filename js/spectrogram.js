@@ -4,6 +4,7 @@ var FFT_SIZE = 2048;
 var SAMPLE = 512;
 var MIN_DEC = -80.0;
 var MAX_DEC = 80.0;
+var HEIGHT = 440.0;
 
 function VisualizerSample(filename, selector) {
   this.selector = selector;
@@ -50,7 +51,7 @@ VisualizerSample.prototype.process = function(e) {
 
 VisualizerSample.prototype.setupVisual = function() {
   var width = 900;
-  var height = 500;
+  var height = HEIGHT;
   var margin = {top: 20, right: 20, bottom: 30, left: 50};
 
   this.svg = d3.select(this.selector).append("svg")
@@ -69,7 +70,7 @@ VisualizerSample.prototype.setupVisual = function() {
 
   var that = this;
   var button_id = this.selector + "_button";
-  d3.select(this.selector).append("button")
+  this.button = d3.select(this.selector).append("button")
     .style("margin-top", height + margin.top + margin.bottom + 20 + "px")
     .attr("id", button_id)
     .text("play")
@@ -123,11 +124,22 @@ VisualizerSample.prototype.setupVisual = function() {
 
 VisualizerSample.prototype.showProgress = function() {
   if(this.isPlaying && this.isLoaded) {
-    this.count += 1;
-    this.curSec =  (SAMPLE * this.count) / this.buffer.sampleRate;
-    console.log(this.progressLine);
+    this.curDuration = (context.currentTime - this.startTime);
+    // this.count += 1;
+    // this.curSec = (SAMPLE * this.count) / this.buffer.sampleRate;
+    var that = this;
+    this.progressLine
+      .attr("x1", function() {return that.xScale(that.curDuration);})
+      .attr("x2", function() {return that.xScale(that.curDuration);})
+      .attr("y1", 0)
+      .attr("y2", HEIGHT)
+      .attr("stroke",'red')
+      .attr("stroke-width", 2.0);
+
     requestAnimFrame(this.showProgress.bind(this));
-    if(this.count >= this.maxCount) {
+
+    if(this.curDuration >= this.buffer.duration) {
+      this.progressLine.attr("y2", 0);
       this.togglePlayback()
     }
   }
@@ -135,17 +147,17 @@ VisualizerSample.prototype.showProgress = function() {
 
 // Toggle playback
 VisualizerSample.prototype.togglePlayback = function() {
-  if (this.isPlaying  && !this.isLoaded) {
-    // Stop playback
+  if (this.isPlaying) {
     this.source.noteOff(0);
     this.startOffset += context.currentTime - this.startTime;
     console.log('paused at', this.startOffset);
-    // Save the position of the play head.
+    this.button.attr("disabled", null);
   } else {
+    this.button.attr("disabled", true);
+    this.startTime = context.currentTime;
     this.count = 0;
     this.curSec = 0;
-    this.startTime = context.currentTime;
-    console.log('started at', this.startOffset);
+    this.curDuration = 0;
     this.source = context.createBufferSource();
     this.source.buffer = this.buffer;
     this.analyser.buffer = this.buffer;
@@ -160,6 +172,8 @@ VisualizerSample.prototype.togglePlayback = function() {
 
     this.source.loop = false;
     this.source.start(0, this.startOffset % this.buffer.duration);
+
+    console.log('started at', this.startOffset);
     
     if (this.isLoaded) {
       requestAnimFrame(this.showProgress.bind(this));
