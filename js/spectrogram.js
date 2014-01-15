@@ -1,13 +1,13 @@
 
 var SMOOTHING = 0.0;
 var FFT_SIZE = 2048;
-// var SAMPLE = 512;
 var SAMPLE = 512;
+// var SAMPLE = 2048;
 var MIN_DEC = -80.0;
 var MAX_DEC = 80.0;
 var HEIGHT = 440.0;
 
-function VisualizerSample(filename, selector) {
+function Spectrogram(filename, selector) {
   this.selector = selector;
   this.filename = filename;
   this.analyser = context.createAnalyser();
@@ -35,7 +35,7 @@ function VisualizerSample(filename, selector) {
   this.maxCount = 0;
 }
 
-VisualizerSample.prototype.process = function(e) {
+Spectrogram.prototype.process = function(e) {
   if(this.isPlaying && !this.isLoaded) {
     this.count += 1;
     this.curSec =  (SAMPLE * this.count) / this.buffer.sampleRate;
@@ -51,7 +51,7 @@ VisualizerSample.prototype.process = function(e) {
   }
 }
 
-VisualizerSample.prototype.setupVisual = function() {
+Spectrogram.prototype.setupVisual = function() {
   this.width = 900;
   this.height = HEIGHT;
   this.margin = {top: 20, right: 20, bottom: 30, left: 50};
@@ -149,7 +149,7 @@ VisualizerSample.prototype.setupVisual = function() {
   // console.log(this.yScale.domain());
 }
 
-VisualizerSample.prototype.showProgress = function() {
+Spectrogram.prototype.showProgress = function() {
   if(this.isPlaying && this.isLoaded) {
     this.curDuration = (context.currentTime - this.startTime);
     // this.count += 1;
@@ -173,7 +173,7 @@ VisualizerSample.prototype.showProgress = function() {
 }
 
 // Toggle playback
-VisualizerSample.prototype.togglePlayback = function() {
+Spectrogram.prototype.togglePlayback = function() {
   if (this.isPlaying) {
     this.source.noteOff(0);
     this.startOffset += context.currentTime - this.startTime;
@@ -209,7 +209,7 @@ VisualizerSample.prototype.togglePlayback = function() {
   this.isPlaying = !this.isPlaying;
 }
 
-VisualizerSample.prototype.draw = function() {
+Spectrogram.prototype.draw = function() {
   var that = this;
 
   var min = d3.min(this.data, function(d) { return d3.min(d.values)});
@@ -240,13 +240,13 @@ VisualizerSample.prototype.draw = function() {
   });
 }
 
-VisualizerSample.prototype.getFrequencyValue = function(freq) {
+Spectrogram.prototype.getFrequencyValue = function(freq) {
   var nyquist = context.sampleRate/2;
   var index = Math.round(freq/nyquist * this.freqs.length);
   return this.freqs[index];
 }
 
-VisualizerSample.prototype.getBinFrequency = function(index) {
+Spectrogram.prototype.getBinFrequency = function(index) {
   var nyquist = context.sampleRate/2;
   var freq = index / this.freqs.length * nyquist;
   return freq;
