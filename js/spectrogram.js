@@ -1,15 +1,94 @@
 
+window.requestAnimFrame = (function(){
+return  window.requestAnimationFrame       || 
+  window.webkitRequestAnimationFrame || 
+  window.mozRequestAnimationFrame    || 
+  window.oRequestAnimationFrame      || 
+  window.msRequestAnimationFrame     || 
+  function( callback ){
+  window.setTimeout(callback, 1000 / 60);
+};
+})();
+
 var SMOOTHING = 0.0;
 var FFT_SIZE = 2048;
 var SAMPLE = 512;
-// var SAMPLE = 2048;
 var MIN_DEC = -80.0;
 var MAX_DEC = 80.0;
 var HEIGHT = 440.0;
 
+function loadSounds(obj, context, soundMap, callback) {
+  // Array-ify
+  var names = [];
+  var paths = [];
+  for (var name in soundMap) {
+    var path = soundMap[name];
+    names.push(name);
+    paths.push(path);
+  }
+  bufferLoader = new BufferLoader(context, paths, function(bufferList) {
+    for (var i = 0; i < bufferList.length; i++) {
+      var buffer = bufferList[i];
+      var name = names[i];
+      obj[name] = buffer;
+    }
+    if (callback) {
+      callback();
+    }
+  });
+  bufferLoader.load();
+}
+
+function BufferLoader(context, urlList, callback) {
+  this.context = context;
+  this.urlList = urlList;
+  this.onload = callback;
+  this.bufferList = new Array();
+  this.loadCount = 0;
+}
+
+BufferLoader.prototype.loadBuffer = function(url, index) {
+  // Load buffer asynchronously
+  var request = new XMLHttpRequest();
+  request.open("GET", url, true);
+  request.responseType = "arraybuffer";
+
+  var loader = this;
+
+  request.onload = function() {
+    // Asynchronously decode the audio file data in request.response
+    loader.context.decodeAudioData(
+      request.response,
+      function(buffer) {
+        if (!buffer) {
+          alert('error decoding file data: ' + url);
+          return;
+        }
+        loader.bufferList[index] = buffer;
+        if (++loader.loadCount == loader.urlList.length)
+          loader.onload(loader.bufferList);
+      },
+      function(error) {
+        console.error('decodeAudioData error', error);
+      }
+    );
+  }
+
+  request.onerror = function() {
+    alert('BufferLoader: XHR error');
+  }
+  request.send();
+};
+
+BufferLoader.prototype.load = function() {
+  for (var i = 0; i < this.urlList.length; ++i)
+  this.loadBuffer(this.urlList[i], i);
+};
+
 function Spectrogram(filename, selector) {
   this.selector = selector;
   this.filename = filename;
+  this.context = context = new webkitAudioContext();
   this.analyser = context.createAnalyser();
   this.javascriptNode = context.createScriptProcessor(SAMPLE, 1, 1);
 
@@ -19,7 +98,7 @@ function Spectrogram(filename, selector) {
   this.analyser.smoothingTimeConstant = SMOOTHING;
   this.analyser.fftSize = FFT_SIZE;
 
-  loadSounds(this, {
+  loadSounds(this, this.context, {
     buffer: this.filename
   }, this.setupVisual.bind(this));
 
@@ -84,7 +163,7 @@ Spectrogram.prototype.setupVisual = function() {
   for(i = 64; i < this.analyser.frequencyBinCount; i += 64) {
     freqs.push(d3.round(this.getBinFrequency(i), 0));
   }
-  console.log(freqs);
+
   this.freqSelect = d3.select(this.selector).append("select")
     .style("margin-top", this.height + this.margin.top + this.margin.bottom + 20 + "px")
     .style("margin-left", "20px")
@@ -102,8 +181,7 @@ Spectrogram.prototype.setupVisual = function() {
     .attr("selected", function(d,i) { return (d == 11047) ? "selected" : null;})
     .text(function(d) { return d3.round(d / 1000) + "k";});
 
-  this.maxCount = (context.sampleRate / SAMPLE) * this.buffer.duration;
-
+  this.maxCount = (this.context.sampleRate / SAMPLE) * this.buffer.duration;
 
   this.xScale = d3.scale.linear()
     .domain([0, this.buffer.duration])
@@ -142,16 +220,11 @@ Spectrogram.prototype.setupVisual = function() {
     .attr("class", "y axis")
     .attr("transform", "translate(" + (-10) + ",0)")
     .call(this.yAxis)
-
-  // this.dotHeight = this.height / this.analyser.frequencyBinCount;
-  // this.dotHeight = this.height / this.yScale.domain()[1];
-  // console.log(this.dotHeight);
-  // console.log(this.yScale.domain());
 }
 
 Spectrogram.prototype.showProgress = function() {
   if(this.isPlaying && this.isLoaded) {
-    this.curDuration = (context.currentTime - this.startTime);
+    this.curDuration = (this.context.currentTime - this.startTime);
     // this.count += 1;
     // this.curSec = (SAMPLE * this.count) / this.buffer.sampleRate;
     var that = this;
@@ -176,16 +249,16 @@ Spectrogram.prototype.showProgress = function() {
 Spectrogram.prototype.togglePlayback = function() {
   if (this.isPlaying) {
     this.source.noteOff(0);
-    this.startOffset += context.currentTime - this.startTime;
+    this.startOffset += this.context.currentTime - this.startTime;
     console.log('paused at', this.startOffset);
     this.button.attr("disabled", null);
   } else {
     this.button.attr("disabled", true);
-    this.startTime = context.currentTime;
+    this.startTime = this.context.currentTime;
     this.count = 0;
     this.curSec = 0;
     this.curDuration = 0;
-    this.source = context.createBufferSource();
+    this.source = this.context.createBufferSource();
     this.source.buffer = this.buffer;
     this.analyser.buffer = this.buffer;
     this.javascriptNode.onaudioprocess = this.process.bind(this);
@@ -194,8 +267,8 @@ Spectrogram.prototype.togglePlayback = function() {
     this.source.connect(this.analyser);
     this.analyser.connect(this.javascriptNode);
 
-    this.source.connect(context.destination);
-    this.javascriptNode.connect(context.destination);
+    this.source.connect(this.context.destination);
+    this.javascriptNode.connect(this.context.destination);
 
     this.source.loop = false;
     this.source.start(0, this.startOffset % this.buffer.duration);
@@ -241,13 +314,13 @@ Spectrogram.prototype.draw = function() {
 }
 
 Spectrogram.prototype.getFrequencyValue = function(freq) {
-  var nyquist = context.sampleRate/2;
+  var nyquist = this.context.sampleRate/2;
   var index = Math.round(freq/nyquist * this.freqs.length);
   return this.freqs[index];
 }
 
 Spectrogram.prototype.getBinFrequency = function(index) {
-  var nyquist = context.sampleRate/2;
+  var nyquist = this.context.sampleRate/2;
   var freq = index / this.freqs.length * nyquist;
   return freq;
 }
