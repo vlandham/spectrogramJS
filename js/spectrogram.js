@@ -1,4 +1,5 @@
 
+// shim requestAnimFrame for animating playback
 window.requestAnimFrame = (function(){
 return  window.requestAnimationFrame       || 
   window.webkitRequestAnimationFrame || 
@@ -10,15 +11,9 @@ return  window.requestAnimationFrame       ||
 };
 })();
 
-var SMOOTHING = 0.0;
-var FFT_SIZE = 2048;
-var SAMPLE = 512;
-var MIN_DEC = -80.0;
-var MAX_DEC = 80.0;
-var HEIGHT = 440.0;
 
+// helper function for loading one or more sound files
 function loadSounds(obj, context, soundMap, callback) {
-  // Array-ify
   var names = [];
   var paths = [];
   for (var name in soundMap) {
@@ -39,6 +34,9 @@ function loadSounds(obj, context, soundMap, callback) {
   bufferLoader.load();
 }
 
+// class that performs most of the work to load
+// a new sound file asynchronously
+// originally from: http://chimera.labs.oreilly.com/books/1234000001552/ch02.html
 function BufferLoader(context, urlList, callback) {
   this.context = context;
   this.urlList = urlList;
@@ -85,22 +83,44 @@ BufferLoader.prototype.load = function() {
   this.loadBuffer(this.urlList[i], i);
 };
 
-function Spectrogram(filename, selector) {
+// ---
+// Spectrogram class 
+// constructor takes a filename, selector id to use to figure 
+// out where to display, and a big options hash.
+// (not a great api - I know!)
+// sets up most of the configuration for the sound analysis
+// and then loads the sound using loadSounds.
+// Once finished loading, the setupVisual callback
+// is called.
+// ---
+function Spectrogram(filename, selector, options) {
+  if (!options) {
+    options = {};
+  }
+  this.options = options;
+
+  var SMOOTHING = 0.0;
+  var FFT_SIZE = 2048;
+
+  this.sampleRate = 512;
+  this.decRange = [-80.0, 80.0];
+
+  this.width = options.width || 900;
+  this.height = options.height || 440;
+  this.margin = {top: 20, right: 20, bottom: 30, left: 50};
+
   this.selector = selector;
   this.filename = filename;
   this.context = context = new webkitAudioContext();
   this.analyser = context.createAnalyser();
-  this.javascriptNode = context.createScriptProcessor(SAMPLE, 1, 1);
+  this.javascriptNode = context.createScriptProcessor(this.sampleRate, 1, 1);
 
-  this.analyser.minDecibels = MIN_DEC;
-  this.analyser.maxDecibels = MAX_DEC;
+  this.analyser.minDecibels = this.decRange[0];
+  this.analyser.maxDecibels = this.decRange[1];
 
   this.analyser.smoothingTimeConstant = SMOOTHING;
   this.analyser.fftSize = FFT_SIZE;
 
-  loadSounds(this, this.context, {
-    buffer: this.filename
-  }, this.setupVisual.bind(this));
 
   this.freqs = new Uint8Array(this.analyser.frequencyBinCount);
   this.data = [];
@@ -112,28 +132,48 @@ function Spectrogram(filename, selector) {
   this.count = 0;
   this.curSec = 0;
   this.maxCount = 0;
+
+  loadSounds(this, this.context, {
+    buffer: this.filename
+  }, this.setupVisual.bind(this));
 }
 
+// ---
+// process
+// callback executed each onaudioprocess of the javascriptNode.
+// performs the work of analyzing the sound and storing the results
+// in a big array (not a great idea, but I haven't thought of something
+// better.
+// ---
 Spectrogram.prototype.process = function(e) {
   if(this.isPlaying && !this.isLoaded) {
     this.count += 1;
-    this.curSec =  (SAMPLE * this.count) / this.buffer.sampleRate;
+    this.curSec =  (this.sampleRate * this.count) / this.buffer.sampleRate;
     this.analyser.getByteFrequencyData(this.freqs);
 
     var d = {'key':this.curSec, 'values':new Uint8Array(this.freqs)};
     this.data.push(d);
     if(this.count >= this.maxCount) {
-      this.togglePlayback()
+      this.switchButtonText();
+      this.togglePlayback();
       this.draw();
       this.isLoaded = true;
     }
   }
 }
 
+// ---
+// setupVisual
+// callback executed when the sound has been loaded. 
+// sets up scales and other components needed to visualize.
+// ---
 Spectrogram.prototype.setupVisual = function() {
-  this.width = 900;
-  this.height = HEIGHT;
-  this.margin = {top: 20, right: 20, bottom: 30, left: 50};
+
+  // can configure these from the options
+  this.timeRange = [0, this.buffer.duration];
+  var maxFrequency = this.options.maxFrequency || this.getBinFrequency(this.analyser.frequencyBinCount / 2);
+  var minFrequency = this.options.minFrequency || this.getBinFrequency(0);
+  this.freqRange = [minFrequency, maxFrequency];
 
   this.svg = d3.select(this.selector).append("svg")
     .attr("width", this.width + this.margin.left + this.margin.right)
@@ -142,7 +182,7 @@ Spectrogram.prototype.setupVisual = function() {
     .attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
 
   this.canvas = d3.select(this.selector).append("canvas")
-    .attr("id", "vis_canvas")
+    .attr("class", "vis_canvas")
     .attr("width", this.width + this.margin.left)
     .attr("height", this.height + this.margin.top)
     .style("padding", d3.map(this.margin).values().join("px ") + "px");
@@ -154,7 +194,7 @@ Spectrogram.prototype.setupVisual = function() {
   this.button = d3.select(this.selector).append("button")
     .style("margin-top", this.height + this.margin.top + this.margin.bottom + 20 + "px")
     .attr("id", button_id)
-    .text("play")
+    .text("analyze")
     .on("click", function() {
       that.togglePlayback();
     });
@@ -181,18 +221,18 @@ Spectrogram.prototype.setupVisual = function() {
     .attr("selected", function(d,i) { return (d == 11047) ? "selected" : null;})
     .text(function(d) { return d3.round(d / 1000) + "k";});
 
-  this.maxCount = (this.context.sampleRate / SAMPLE) * this.buffer.duration;
+  this.maxCount = (this.context.sampleRate / this.sampleRate) * this.buffer.duration;
 
   this.xScale = d3.scale.linear()
-    .domain([0, this.buffer.duration])
+    .domain(this.timeRange)
     .range([0, this.width]);
 
   this.yScale = d3.scale.linear()
-    .domain([this.getBinFrequency(0), this.getBinFrequency(this.analyser.frequencyBinCount / 2)])
+    .domain(this.freqRange)
     .range([this.height,0]);
 
   this.zScale = d3.scale.linear()
-    .domain([MIN_DEC, MAX_DEC])
+    .domain(this.decRange)
     .range(["white", "black"])
     .interpolate(d3.interpolateLab);
 
@@ -222,11 +262,14 @@ Spectrogram.prototype.setupVisual = function() {
     .call(this.yAxis)
 }
 
+// ---
+// showProgress
+// ---
 Spectrogram.prototype.showProgress = function() {
   if(this.isPlaying && this.isLoaded) {
     this.curDuration = (this.context.currentTime - this.startTime);
     // this.count += 1;
-    // this.curSec = (SAMPLE * this.count) / this.buffer.sampleRate;
+    // this.curSec = (this.sampleRate * this.count) / this.buffer.sampleRate;
     var that = this;
     this.progressLine
       .attr("x1", function() {return that.xScale(that.curDuration);})
@@ -245,7 +288,17 @@ Spectrogram.prototype.showProgress = function() {
   }
 }
 
+// ---
+// Little helper function to change the text on the button
+// after the sound has been analyzed.
+// ---
+Spectrogram.prototype.switchButtonText = function() {
+  this.button.text("play");
+}
+
+// ---
 // Toggle playback
+// ---
 Spectrogram.prototype.togglePlayback = function() {
   if (this.isPlaying) {
     this.source.noteOff(0);
@@ -282,6 +335,8 @@ Spectrogram.prototype.togglePlayback = function() {
   this.isPlaying = !this.isPlaying;
 }
 
+// ---
+// ---
 Spectrogram.prototype.draw = function() {
   var that = this;
 
@@ -291,10 +346,8 @@ Spectrogram.prototype.draw = function() {
 
   this.dotWidth = this.width / this.maxCount;
   this.dotHeight = this.height / this.analyser.frequencyBinCount;
-  // this.dotHeight = this.height / this.yScale.domain()[1];
 
-
-  var visContext = document.getElementById('vis_canvas').getContext('2d');
+  var visContext = d3.select(this.selector).select(".vis_canvas")[0][0].getContext('2d');
 
   this.svg.select(".x.axis").call(this.xAxis);
   this.svg.select(".y.axis").call(this.yAxis);
@@ -313,12 +366,16 @@ Spectrogram.prototype.draw = function() {
   });
 }
 
+// ---
+// ---
 Spectrogram.prototype.getFrequencyValue = function(freq) {
   var nyquist = this.context.sampleRate/2;
   var index = Math.round(freq/nyquist * this.freqs.length);
   return this.freqs[index];
 }
 
+// ---
+// ---
 Spectrogram.prototype.getBinFrequency = function(index) {
   var nyquist = this.context.sampleRate/2;
   var freq = index / this.freqs.length * nyquist;
