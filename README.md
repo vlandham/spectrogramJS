@@ -2,6 +2,8 @@
 
 Visualize sounds as a spectrogram - right in your browser!
 
+![Spectrogram](vlandham.github.com/spectrogramJS/example.png)
+
 ## Usage 
 
 Include the css for .spectrogram elements
