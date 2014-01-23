@@ -2,7 +2,7 @@
 
 Visualize sounds as a spectrogram - right in your browser!
 
-![Spectrogram](vlandham.github.com/spectrogramJS/example.png)
+![Spectrogram](http://vallandingham.me/spectrogramJS/example.png)
 
 ## Usage 
 
