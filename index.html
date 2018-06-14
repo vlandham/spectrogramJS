@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+
+<head>
     <link href="css/spectrogram.css" media="screen" rel="stylesheet" type="text/css" />
     <meta charset="utf-8" />
     <title>SpectrogramJS</title>
-  </head>
-  <body>
+</head>
+
+<body>
     <h1>SpectrogramJS</h1>
     <p>Visualize sounds using a spectrogram - right in your browser!</p>
 
@@ -13,14 +15,18 @@
     <div id="aaa" class="spectrogram"></div>
 
     <p><a href="https://github.com/vlandham/spectrogramJS">See how to use SpectrogramJS</a></p>
-    
+
     <script type="text/javascript" src="js/jquery-2.0.3.min.js"></script>
-    <script type="text/javascript" src="js/d3.v3.min.js"></script>
+    <script type="text/javascript" src="js/d3.v5.min.js"></script>
     <script type="text/javascript" src="js/spectrogram.js"></script>
     <script>
-      var sample = new Spectrogram('data/bird_short.ogg', "#vis", {width:500, height:200, maxFrequency:8000});
-      var sample2 = new Spectrogram('data/whistle_short.ogg', "#aaa", {width:500, height:200, maxFrequency:6000});
+        var sample = new Spectrogram('data/whistle_short.ogg', "#vis", {
+            width: 500,
+            height: 200,
+            maxFrequency: 6000
+        });
+        // var sample2 = new Spectrogram('data/whistle_short.ogg', "#aaa", {width:500, height:200, maxFrequency:6000});
     </script>
-  </body>
-</html>
+</body>
 
+</html>
