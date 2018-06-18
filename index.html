@@ -4,6 +4,8 @@
 <head>
     <link href="css/spectrogram.css" media="screen" rel="stylesheet" type="text/css" />
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>SpectrogramJS</title>
 </head>
 
@@ -16,17 +18,18 @@
 
     <p><a href="https://github.com/vlandham/spectrogramJS">See how to use SpectrogramJS</a></p>
 
-    <script type="text/javascript" src="js/jquery-2.0.3.min.js"></script>
     <script type="text/javascript" src="js/d3.v5.min.js"></script>
     <script type="text/javascript" src="js/spectrogram.js"></script>
     <script>
-        var sample = new Spectrogram('data/whistle_short.ogg', "#vis", {
+        var sample = new Spectrogram('data/bird_short.ogg', "#vis", {
             width: 500,
             height: 200,
-            maxFrequency: 6000
+            maxFrequency: 12000
         });
-        // var sample2 = new Spectrogram('data/whistle_short.ogg', "#aaa", {width:500, height:200, maxFrequency:6000});
     </script>
+
+
+
 </body>
 
 </html>

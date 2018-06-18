@@ -4,21 +4,17 @@ Visualize sounds as a spectrogram - right in your browser!
 
 ![Spectrogram](http://vallandingham.me/spectrogramJS/example.png)
 
-## Usage 
+## Usage
 
 Include the css for .spectrogram elements
 
     <link href="css/spectrogram.css" media="screen" rel="stylesheet" type="text/css" />
 
-SpectrogramJS depends on jquery and D3.js - so make sure you include them first..
+SpectrogramJS depends on D3.js - so make sure you include them first..
 
-
-    <script type="text/javascript" src="js/jquery-2.0.3.min.js"></script>
     <script type="text/javascript" src="js/d3.v3.min.js"></script>
 
-
 Then source spectrogram.js
-
 
     <script type="text/javascript" src="js/spectrogram.js"></script>
 
@@ -44,6 +40,6 @@ But for now, there are a few things you can change:
 
     sampleSize: Number of samples to analyze frequencies of. Suggested: 512, or 256. A smaller number means more sampling, which means better resolution but a slower visual display.
 
-    maxFrequency: The maximum frequency to display initially. 
+    maxFrequency: The maximum frequency to display initially.
 
     minFrequency: The minimum frequency to display.

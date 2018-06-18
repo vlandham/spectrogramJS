@@ -1,26 +1,24 @@
 canvas, svg {
-  position: absolute;
-  top: 0;
-  left: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
 .spectrogram {
-  position: relative;
+    position: relative;
 }
 
 .axis {
-  font: 14px sans-serif;
+    font: 14px sans-serif;
 }
 
-.axis path,
+.axis path, .axis line {
+    fill: none;
+}
+
 .axis line {
-  fill: none;
+    shape-rendering: crispEdges;
+    stroke: #444;
+    stroke-width: 1.0px;
+    stroke-dasharray: 2, 4;
 }
-
-.axis line {
-  shape-rendering: crispEdges;
-  stroke: #444;
-  stroke-width: 1.0px;
-  stroke-dasharray: 2,4;
-}
-
