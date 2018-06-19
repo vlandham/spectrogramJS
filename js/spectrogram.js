@@ -5,10 +5,9 @@
 /**
  * optimize the animation - shim requestAnimFrame for animating playback
  */
-window.requestAnimFrame = window.requestAnimationFrame ||
-    function(callback) {
-        window.setTimeout(callback, 1000 / 60);
-    };
+window.requestAnimFrame = window.requestAnimationFrame || function(callback) {
+    window.setTimeout(callback, 1000 / 60);
+};
 
 /**
  * Helper function for loading one or more sound files
@@ -110,6 +109,7 @@ function Spectrogram(filename, selector, options = {}) {
     };
 
     this.colorScheme = options.colorScheme || ['#ffffff', '#f0f0f0', '#d9d9d9', '#bdbdbd', '#969696', '#737373', '#525252', '#252525', '#000000'];
+    this.zoomScale = 1;
 
     this.selector = selector;
     this.filename = filename;
@@ -136,7 +136,7 @@ function Spectrogram(filename, selector, options = {}) {
     this.isPlaying = false;
     this.isLoaded = false;
     this.startTime = 0;
-    this.startOffset = 0;
+    // this.startOffset = 0;
     this.count = 0;
     this.curSec = 0;
     this.maxCount = 0;
@@ -166,8 +166,7 @@ Spectrogram.prototype.process = function() {
 
         if (this.count >= this.maxCount) {
             this.draw();
-            this.switchButtonText();
-            this.togglePlayback();
+            this.stop();
             this.isLoaded = true;
             // console.log(this.data.length);
             // console.log(this.data[0].values.length);
@@ -191,7 +190,7 @@ Spectrogram.prototype.setupVisual = function() {
 
     // zoom the x-axis and the scale of the canvas
     this.zoom = d3.zoom()
-        .scaleExtent([1, 4])
+        .scaleExtent([1, parseInt(this.timeRange[1])])
         .translateExtent([
             [0, 0],
             [this.width, this.height]
@@ -200,6 +199,7 @@ Spectrogram.prototype.setupVisual = function() {
             [0, 0],
             [this.width, this.height]
         ]).on('zoom', function() {
+            that.zoomScale = d3.event.transform.k;
             that.xScale = d3.event.transform.rescaleX(that.orgXScale);
             that.gX.call(that.xAxis.scale(that.xScale));
             that.draw();
@@ -227,12 +227,28 @@ Spectrogram.prototype.setupVisual = function() {
 
     this.progressLine = this.svg.append('line');
 
-    this.button = d3.select(this.selector)
+    this.playButton = d3.select(this.selector)
         .append('button')
         .style('margin-top', this.height + this.margin.top + this.margin.bottom + 20 + 'px')
-        .text('play')
+        .text('Play')
         .on('click', function() {
-            that.togglePlayback();
+            that.play();
+        });
+
+    this.pauseButton = d3.select(this.selector)
+        .append('button')
+        .style('margin-top', this.height + this.margin.top + this.margin.bottom + 20 + 'px')
+        .text('Pause')
+        .on('click', function() {
+            that.pauseResume();
+        });
+
+    this.stopButton = d3.select(this.selector)
+        .append('button')
+        .style('margin-top', this.height + this.margin.top + this.margin.bottom + 20 + 'px')
+        .text('Stop')
+        .on('click', function() {
+            that.stop();
         });
 
     var freqs = [];
@@ -308,7 +324,7 @@ Spectrogram.prototype.setupVisual = function() {
         // .attr('transform', 'translate(0,0)')
         .call(this.yAxis);
 
-    this.togglePlayback();
+    this.play();
 };
 
 /**
@@ -322,10 +338,10 @@ Spectrogram.prototype.showProgress = function() {
         var that = this;
         this.progressLine
             .attr('x1', function() {
-                return that.xScale(that.curDuration);
+                return that.orgXScale(that.curDuration);
             })
             .attr('x2', function() {
-                return that.xScale(that.curDuration);
+                return that.orgXScale(that.curDuration);
             })
             .attr('y1', 0)
             .attr('y2', this.height)
@@ -334,67 +350,103 @@ Spectrogram.prototype.showProgress = function() {
 
         window.requestAnimFrame(this.showProgress.bind(this));
 
-        if (this.curDuration >= this.buffer.duration) {
+        if (this.curDuration >= this.buffer.duration || this.curDuration >= this.endTime) {
             this.progressLine.attr('y2', 0);
-            this.togglePlayback();
+            this.stop();
         }
     }
 };
 
-
 /**
- * Little helper function to change the text on the button
- * after the sound has been analyzed.
+ * Play the spectrogram from the start
  */
-Spectrogram.prototype.switchButtonText = function() {
-    this.button.text('play');
+Spectrogram.prototype.play = function() {
+    this.playButton.attr('disabled', true);
+
+    if (this.isLoaded) {
+        this.volume.gain.value = 1;
+        window.requestAnimFrame(this.showProgress.bind(this));
+    }
+
+    this.startTime = this.context.currentTime;
+    this.count = 0;
+    this.curSec = 0;
+    this.curDuration = 0;
+
+    // create a buffer source node
+    this.source = this.context.createBufferSource();
+    this.source.buffer = this.buffer;
+    this.analyser.buffer = this.buffer;
+    this.scriptNode.onaudioprocess = this.process.bind(this);
+
+    // Connect graph
+    // connect to destination, else it isn't called
+    this.source.connect(this.analyser);
+    this.analyser.connect(this.scriptNode);
+
+    this.analyser.connect(this.volume);
+    this.volume.connect(this.context.destination);
+
+    // this.source.connect(this.context.destination);
+    this.scriptNode.connect(this.context.destination);
+
+    // include the zoom factor in the playback of the sound
+    let startIndex = Math.floor((this.xScale.domain()[0] / this.timeRange[1]) * this.data.length) || 0;
+    let endIndex = Math.floor((this.xScale.domain()[1] / this.timeRange[1]) * this.data.length) - 1 || this.data.length;
+    let startTime = 0;
+    this.endTime = this.timeRange[1];
+    // set the time moments for the portial sound playback 
+    if (this.data[startIndex] && this.data[endIndex]) {
+        startTime = this.data[startIndex].key;
+        this.endTime = this.data[endIndex].key;
+    }
+
+    this.source.loop = false;
+    this.source.start(0, startTime);
+    this.isPlaying = true;
+
 };
 
 /**
- * Toggle playback
+ * Pause and resume the audio
  */
-Spectrogram.prototype.togglePlayback = function() {
+Spectrogram.prototype.pauseResume = function() {
+    let that = this;
+    // pause the audio file
     if (this.isPlaying) {
-        this.source.stop(0);
-        this.startOffset += this.context.currentTime - this.startTime;
-        // console.log('paused at', this.startOffset);
-        this.button.attr('disabled', null);
-    } else {
-        this.button.attr('disabled', true);
-        this.startTime = this.context.currentTime;
-        this.count = 0;
-        this.curSec = 0;
-        this.curDuration = 0;
-
-        // create a buffer source node
-        this.source = this.context.createBufferSource();
-        this.source.buffer = this.buffer;
-        this.analyser.buffer = this.buffer;
-        this.scriptNode.onaudioprocess = this.process.bind(this);
-
-        // Connect graph
-        // connect to destination, else it isn't called
-        this.source.connect(this.analyser);
-        this.analyser.connect(this.scriptNode);
-
-        this.analyser.connect(this.volume);
-        this.volume.connect(this.context.destination);
-
-        // this.source.connect(this.context.destination);
-        this.scriptNode.connect(this.context.destination);
-
-        this.source.loop = false;
-        this.source.start(0, this.startOffset % this.buffer.duration);
-
-        // console.log('started at', this.startOffset);
-
-        if (this.isLoaded) {
-            this.volume.gain.value = 1;
-            window.requestAnimFrame(this.showProgress.bind(this));
-        }
+        this.context.suspend().then(function() {
+            that.pauseButton.text('Resume');
+        });
+        this.isPlaying = false;
+    } // resume
+    else {
+        this.context.resume().then(function() {
+            that.pauseButton.text('Pause');
+        });
+        this.isPlaying = true;
+        window.requestAnimFrame(this.showProgress.bind(this));
     }
-    this.isPlaying = !this.isPlaying;
 };
+
+
+/**
+ * Stop the audio
+ */
+Spectrogram.prototype.stop = function() {
+    // if paused - resume and stop
+    if (this.context.state === 'suspended') {
+        this.pauseButton.text('Pause');
+        this.context.resume();
+    }
+    // stop and enable the play button
+    this.source.stop(0);
+    this.playButton.attr('disabled', null);
+    // remove the progress line to 0
+    window.cancelAnimationFrame(this.showProgress.bind(this));
+    this.progressLine.attr('y2', 0);
+    this.isPlaying = false;
+};
+
 
 /**
  * Draw the spectrogram
@@ -413,8 +465,7 @@ Spectrogram.prototype.draw = function() {
     });
     this.zScale.domain([min + 20, max - 20]);
 
-    let zoomScale = d3.zoomTransform(this.canvas.node()).k;
-    this.dotWidth = (this.width / this.maxCount) * zoomScale;
+    this.dotWidth = (this.width / this.maxCount) * this.zoomScale;
     this.dotHeight = this.height / this.analyser.frequencyBinCount;
 
     // get the context from the canvas to draw on
@@ -428,18 +479,22 @@ Spectrogram.prototype.draw = function() {
 
     visContext.clearRect(0, 0, this.width + this.margin.left, this.height);
 
-    // display as canvas here.
-    this.data.forEach(function(d) {
-        for (var i = 0; i < d.values.length - 1; i++) {
+    // slice the array - increases performance
+    let startIndex = Math.floor((that.xScale.domain()[0] / this.timeRange[1]) * this.data.length) || 0;
+    let endIndex = Math.floor((that.xScale.domain()[1] / this.timeRange[1]) * this.data.length) || this.data.length;
+    // draw only the zoomed part
+    this.data.slice(startIndex, endIndex).forEach(function(d) {
+        for (var j = 0; j < d.values.length - 1; j++) {
             // draw each pixel with the specific color
-            var v = d.values[i];
+            var v = d.values[j];
             var x = that.xScale(d.key);
-            var y = that.yScale(that.getBinFrequency(i));
+            var y = that.yScale(that.getBinFrequency(j));
             // color scale
             visContext.fillStyle = that.zScale(v);
             // draw the line
             visContext.fillRect(x, y, that.dotWidth, that.dotHeight);
         }
+
     });
 };
 
