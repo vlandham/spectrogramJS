@@ -225,7 +225,13 @@ Spectrogram.prototype.setupVisual = function() {
         .style('padding', d3.map(this.margin).values().join('px ') + 'px')
         .call(this.zoom);
 
-    this.progressLine = this.svg.append('line');
+    this.progressLine = this.svg.append('line')
+        .attr('x1', 0)
+        .attr('x2', 0)
+        .attr('y1', 0)
+        .attr('y2', this.height)
+        .attr('stroke', 'red')
+        .attr('stroke-width', 2.0);
 
     this.playButton = d3.select(this.selector)
         .append('button')
@@ -333,20 +339,6 @@ Spectrogram.prototype.setupVisual = function() {
 Spectrogram.prototype.showProgress = function() {
     if (this.isPlaying && this.isLoaded) {
         this.curDuration = (this.context.currentTime - this.startTime);
-        // this.count += 1;
-        // this.curSec = (this.sampleRate * this.count) / this.buffer.sampleRate;
-        var that = this;
-        this.progressLine
-            .attr('x1', function() {
-                return that.orgXScale(that.curDuration);
-            })
-            .attr('x2', function() {
-                return that.orgXScale(that.curDuration);
-            })
-            .attr('y1', 0)
-            .attr('y2', this.height)
-            .attr('stroke', 'red')
-            .attr('stroke-width', 2.0);
 
         window.requestAnimFrame(this.showProgress.bind(this));
 
@@ -395,7 +387,7 @@ Spectrogram.prototype.play = function() {
     let endIndex = Math.floor((this.xScale.domain()[1] / this.timeRange[1]) * this.data.length) - 1 || this.data.length;
     let startTime = 0;
     this.endTime = this.timeRange[1];
-    // set the time moments for the portial sound playback 
+    // set the time moments for the portial sound playback
     if (this.data[startIndex] && this.data[endIndex]) {
         startTime = this.data[startIndex].key;
         this.endTime = this.data[endIndex].key;
@@ -404,7 +396,19 @@ Spectrogram.prototype.play = function() {
     this.source.loop = false;
     this.source.start(0, startTime);
     this.isPlaying = true;
-
+    // animate the progress line
+    if (this.isLoaded) {
+        this.progressLine
+            .attr('x1', 0)
+            .attr('x2', 0)
+            .attr('y2', this.height)
+            .transition() // apply a transition
+            .ease(d3.easeLinear)
+            .duration((this.endTime - startTime) * 1000)
+            .attr('x1', this.width)
+            .attr('x2', this.width)
+            .attr('y2', this.height);
+    }
 };
 
 /**
@@ -414,12 +418,24 @@ Spectrogram.prototype.pauseResume = function() {
     let that = this;
     // pause the audio file
     if (this.isPlaying) {
+        // pause also the progress line
+        this.progressLine
+            .transition()
+            .duration(0);
         this.context.suspend().then(function() {
             that.pauseButton.text('Resume');
         });
         this.isPlaying = false;
     } // resume
     else {
+        // continue the progress line
+        this.progressLine
+            .transition() // apply a transition
+            .ease(d3.easeLinear)
+            .duration((this.endTime - this.curDuration) * 1000)
+            .attr('x1', this.width)
+            .attr('x2', this.width);
+
         this.context.resume().then(function() {
             that.pauseButton.text('Pause');
         });
@@ -443,7 +459,12 @@ Spectrogram.prototype.stop = function() {
     this.playButton.attr('disabled', null);
     // remove the progress line to 0
     window.cancelAnimationFrame(this.showProgress.bind(this));
-    this.progressLine.attr('y2', 0);
+    this.progressLine
+        .transition()
+        .duration(0)
+        .attr('x1', 0)
+        .attr('x2', 0)
+        .attr('y2', this.height);
     this.isPlaying = false;
 };
 
@@ -465,9 +486,6 @@ Spectrogram.prototype.draw = function() {
     });
     this.zScale.domain([min + 20, max - 20]);
 
-    this.dotWidth = (this.width / this.maxCount) * this.zoomScale;
-    this.dotHeight = this.height / this.analyser.frequencyBinCount;
-
     // get the context from the canvas to draw on
     var visContext = d3.select(this.selector)
         .select('.vis_canvas')
@@ -482,8 +500,54 @@ Spectrogram.prototype.draw = function() {
     // slice the array - increases performance
     let startIndex = Math.floor((that.xScale.domain()[0] / this.timeRange[1]) * this.data.length) || 0;
     let endIndex = Math.floor((that.xScale.domain()[1] / this.timeRange[1]) * this.data.length) || this.data.length;
+
+    // console.log(endIndex - startIndex);
+    let tmpData = this.data.slice(startIndex, endIndex);
+
+    // bin the data into less number of elements - this is calculated if
+    // the dotWidth would be less than 1
+    let binnedTmpData = [];
+    // if this is true each time slice would be smaller thant 1
+    // if true bin and average the array to the number of elements of width
+    if ((endIndex - startIndex) > this.width) {
+        let ratio = Math.ceil((endIndex - startIndex) / this.width);
+        for (let i = 0; i < tmpData.length; i++) {
+            // console.log(i % ratio);
+            if (!(i % ratio)) {
+                let tmpValues = [Array.from(tmpData[i].values)];
+                let tmpKey = [tmpData[i].key];
+                // get the i+ratio elements to compute the average of a bin in the next step
+                for (let j = i + 1; j < i + ratio; j++) {
+                    if (tmpData[j]) {
+                        tmpValues.push(Array.from(tmpData[j].values));
+                        tmpKey.push(tmpData[j].key);
+                    }
+                }
+                // average the columns in the 2D array and convert back to Uint8Array
+                tmpValues = new Uint8Array(tmpValues.reduce((acc, cur) => {
+                    cur.forEach((e, i) => acc[i] = acc[i] ? acc[i] + e : e);
+                    return acc;
+                }, []).map(e => e / tmpValues.length));
+                // average of the time moment
+                tmpKey = tmpKey.reduce(function(a, b) {
+                    return a + b;
+                }) / tmpKey.length;
+
+                binnedTmpData.push({
+                    'values': tmpValues,
+                    'key': tmpKey
+                });
+            }
+        }
+    } else {
+        binnedTmpData = tmpData;
+    }
+
+    this.dotWidth = 2 * (this.width / binnedTmpData.length);
+    this.dotHeight = this.height / this.analyser.frequencyBinCount;
+
     // draw only the zoomed part
-    this.data.slice(startIndex, endIndex).forEach(function(d) {
+    binnedTmpData.forEach(function(d) {
         for (var j = 0; j < d.values.length - 1; j++) {
             // draw each pixel with the specific color
             var v = d.values[j];

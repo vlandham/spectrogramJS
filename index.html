@@ -10,22 +10,31 @@
 </head>
 
 <body>
-    <h1>SpectrogramJS</h1>
-    <p>Visualize sounds using a spectrogram - right in your browser!</p>
-
+    <!-- <h1>SpectrogramJS</h1> -->
+    <!-- <p>Visualize sounds using a spectrogram - right in your browser!</p> -->
+    <br />
+    <br />
     <div id="vis" class="spectrogram"></div>
-    <div id="aaa" class="spectrogram"></div>
+    <div id="vis2" class="spectrogram"></div>
+    <!-- <div id="aaa" class="spectrogram"></div> -->
 
-    <p><a href="https://github.com/vlandham/spectrogramJS">See how to use SpectrogramJS</a></p>
+    <!-- <p><a href="https://github.com/vlandham/spectrogramJS">See how to use SpectrogramJS</a></p> -->
 
     <script type="text/javascript" src="js/d3.v5.min.js"></script>
     <script type="text/javascript" src="js/spectrogram.js"></script>
     <script>
-        var sample = new Spectrogram('data/whistle_short.ogg', "#vis", {
-            width: 500,
-            height: 200,
-            maxFrequency: 12000
+        var sample = new Spectrogram('data/bird_short.ogg', "#vis", {
+            // width: 300,
+            colorScheme: ['#440154', '#472877', '#3e4a89', '#31688d', '#26838e', '#1f9e89', '#36b778', '#6dcd59', '#b4dd2c', '#fde725']
         });
+
+        // var sample = new Spectrogram('data/Rose-Crested-Blue-Pipit-28993.wav', "#vis")
+        // var sample = new Spectrogram('data/Pinkfinch-101641.wav', "#vis2")
+        //  {
+        //     width: 500,
+        //     height: 200,
+        //     maxFrequency: 12000
+        // });
     </script>
 
 
