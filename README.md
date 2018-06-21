@@ -2,23 +2,19 @@
 
 Visualize sounds as a spectrogram - right in your browser!
 
-![Spectrogram](http://vallandingham.me/spectrogramJS/example.png)
+![Spectrogram](example.png)
 
-## Usage 
+## Usage
 
 Include the css for .spectrogram elements
 
     <link href="css/spectrogram.css" media="screen" rel="stylesheet" type="text/css" />
 
-SpectrogramJS depends on jquery and D3.js - so make sure you include them first..
+SpectrogramJS depends on D3.js - so make sure you include them first..
 
-
-    <script type="text/javascript" src="js/jquery-2.0.3.min.js"></script>
-    <script type="text/javascript" src="js/d3.v3.min.js"></script>
-
+    <script type="text/javascript" src="js/d3.v5.min.js"></script>
 
 Then source spectrogram.js
-
 
     <script type="text/javascript" src="js/spectrogram.js"></script>
 
@@ -30,7 +26,11 @@ For example, if I had a div with an id of "vis" in my html:
 
 I would add a spectrogram there by using:
 
-      var sample = new Spectrogram('data/bird_short.ogg', "#vis", {width:500, height:200, maxFrequency:8000});
+    var sample = new Spectrogram('data/bird_short.ogg', "#vis", {
+        width: 600,
+        height: 300,
+        colorScheme: ['#440154', '#472877', '#3e4a89', '#31688d', '#26838e', '#1f9e89', '#36b778', '#6dcd59', '#b4dd2c', '#fde725']
+        });
 
 ## Options
 
@@ -44,6 +44,8 @@ But for now, there are a few things you can change:
 
     sampleSize: Number of samples to analyze frequencies of. Suggested: 512, or 256. A smaller number means more sampling, which means better resolution but a slower visual display.
 
-    maxFrequency: The maximum frequency to display initially. 
+    maxFrequency: The maximum frequency to display initially.
 
     minFrequency: The minimum frequency to display.
+
+    colorScheme : Array of a color scheme
