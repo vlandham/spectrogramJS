@@ -2,12 +2,14 @@
 /*global d3*/
 // 'use strict';
 
+
 /**
  * optimize the animation - shim requestAnimFrame for animating playback
  */
 window.requestAnimFrame = window.requestAnimationFrame || function(callback) {
     window.setTimeout(callback, 1000 / 60);
 };
+
 
 /**
  * Helper function for loading one or more sound files
@@ -32,6 +34,7 @@ function loadSounds(obj, context, soundMap, callback) {
     });
     bufferLoader.load();
 }
+
 
 // class that performs most of the work to load
 // a new sound file asynchronously
@@ -79,6 +82,7 @@ BufferLoader.prototype.load = function() {
     for (var i = 0; i < this.urlList.length; ++i)
         this.loadBuffer(this.urlList[i], i);
 };
+
 
 /**
  * Spectrogram class
@@ -146,6 +150,7 @@ function Spectrogram(filename, selector, options = {}) {
     }, this.setupVisual.bind(this));
 }
 
+
 /**
  * Spectrogram.prototype.process
  * callback executed each onaudioprocess of the scriptNode
@@ -174,6 +179,7 @@ Spectrogram.prototype.process = function() {
     }
 };
 
+
 /**
  * Setup the visual component
  * callback executed when the sound has been loaded.
@@ -184,7 +190,9 @@ Spectrogram.prototype.setupVisual = function() {
     let that = this;
     // can configure these from the options
     this.timeRange = [0, this.buffer.duration];
-    let maxFrequency = this.options.maxFrequency || this.getBinFrequency(this.analyser.frequencyBinCount / 2);
+    let maxFrequency = this.options.maxFrequency || this.getBinFrequency(this.analyser.frequencyBinCount);
+    // let maxFrequency = this.options.maxFrequency || this.getBinFrequency(this.analyser.frequencyBinCount );
+
     let minFrequency = this.options.minFrequency || this.getBinFrequency(0);
     this.freqRange = [minFrequency, maxFrequency];
 
@@ -205,10 +213,18 @@ Spectrogram.prototype.setupVisual = function() {
             that.draw();
         });
 
+    this.canvas = d3.select(this.selector)
+        .append('canvas')
+        .attr('class', 'vis_canvas')
+        .attr('width', this.width)
+        .attr('height', this.height)
+        .style('padding', d3.map(this.margin).values().join('px ') + 'px');
+
     this.svg = d3.select(this.selector)
         .append('svg')
         .attr('width', this.width + this.margin.left + this.margin.right)
         .attr('height', this.height + this.margin.top + this.margin.bottom)
+        .call(this.zoom)
         .append('g')
         .attr('transform', 'translate(' + this.margin.left + ',' + this.margin.top + ')');
 
@@ -217,21 +233,12 @@ Spectrogram.prototype.setupVisual = function() {
         .attr('transform', 'translate(' + (this.width / 2) + ',' + (this.height / 2) + ')')
         .html('<path opacity="0.2" fill="#000" d="M20.201,5.169c-8.254,0-14.946,6.692-14.946,14.946c0,8.255,6.692,14.946,14.946,14.946   s14.946-6.691,14.946-14.946C35.146,11.861,28.455,5.169,20.201,5.169z M20.201,31.749c-6.425,0-11.634-5.208-11.634-11.634   c0-6.425,5.209-11.634,11.634-11.634c6.425,0,11.633,5.209,11.633,11.634C31.834,26.541,26.626,31.749,20.201,31.749z"/> <path fill="#000" d="M26.013,10.047l1.654-2.866c-2.198-1.272-4.743-2.012-7.466-2.012h0v3.312h0   C22.32,8.481,24.301,9.057,26.013,10.047z"> <animateTransform attributeType="xml" attributeName="transform" type="rotate" from="0 20 20" to="360 20 20" dur="0.5s" repeatCount="indefinite"/></path>');
 
-    this.canvas = d3.select(this.selector)
-        .append('canvas')
-        .attr('class', 'vis_canvas')
-        .attr('width', this.width)
-        .attr('height', this.height + this.margin.top)
-        .style('padding', d3.map(this.margin).values().join('px ') + 'px')
-        .call(this.zoom);
-
     this.progressLine = this.svg.append('line')
+        .attr('id', 'progress-line')
         .attr('x1', 0)
         .attr('x2', 0)
         .attr('y1', 0)
-        .attr('y2', this.height)
-        .attr('stroke', 'red')
-        .attr('stroke-width', 2.0);
+        .attr('y2', this.height);
 
     this.playButton = d3.select(this.selector)
         .append('button')
@@ -257,7 +264,7 @@ Spectrogram.prototype.setupVisual = function() {
             that.stop();
         });
 
-    var freqs = [];
+    let freqs = [];
     for (let i = 64; i < this.analyser.frequencyBinCount; i += 64) {
         freqs.push(this.getBinFrequency(i).toFixed(4));
     }
@@ -281,7 +288,7 @@ Spectrogram.prototype.setupVisual = function() {
             return d;
         })
         .attr('selected', function(d) {
-            return (d == 12000) ? 'selected' : null;
+            return (d == 22500) ? 'selected' : null;
         })
         .text(function(d) {
             return Math.round(d / 1000) + 'k';
@@ -317,7 +324,7 @@ Spectrogram.prototype.setupVisual = function() {
         .tickSize(-this.width - 10, 0, 0)
         .tickPadding(10)
         .tickFormat(function(d) {
-            return Math.round(d / 1000) + 'k';
+            return (d / 1000).toFixed(1) + 'k';
         });
 
     this.gX = this.svg.append('g')
@@ -332,6 +339,7 @@ Spectrogram.prototype.setupVisual = function() {
 
     this.play();
 };
+
 
 /**
  * Callback to show the progress
@@ -348,6 +356,7 @@ Spectrogram.prototype.showProgress = function() {
         }
     }
 };
+
 
 /**
  * Play the spectrogram from the start
@@ -410,6 +419,7 @@ Spectrogram.prototype.play = function() {
             .attr('y2', this.height);
     }
 };
+
 
 /**
  * Pause and resume the audio
@@ -543,9 +553,8 @@ Spectrogram.prototype.draw = function() {
         binnedTmpData = tmpData;
     }
 
-    this.dotWidth = 2 * (this.width / binnedTmpData.length);
-    this.dotHeight = this.height / this.analyser.frequencyBinCount;
-
+    this.dotWidth = (this.width / binnedTmpData.length) + 1;
+    this.dotHeight = (this.height / this.analyser.frequencyBinCount) * (this.freqRange[1] / this.yScale.domain()[1]) + 1;
     // draw only the zoomed part
     binnedTmpData.forEach(function(d) {
         for (var j = 0; j < d.values.length - 1; j++) {
@@ -558,9 +567,9 @@ Spectrogram.prototype.draw = function() {
             // draw the line
             visContext.fillRect(x, y, that.dotWidth, that.dotHeight);
         }
-
     });
 };
+
 
 /**
  * Get the frequency value
@@ -570,6 +579,7 @@ Spectrogram.prototype.getFrequencyValue = function(freq) {
     var index = Math.round(freq / nyquist * this.freqs.length);
     return this.freqs[index];
 };
+
 
 /**
  * Get the frequency value
