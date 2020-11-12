@@ -3,35 +3,28 @@
 
 <head>
     <link href="css/spectrogram.css" media="screen" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="css/style.css">
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title>SpectrogramJS</title>
+    <title>Sondata</title>
 </head>
 
 <body>
-    <h1>SpectrogramJS</h1>
-    <p>Visualize sounds using a spectrogram - right in your browser!</p>
-
-    <p><a href="https://github.com/vlandham/spectrogramJS">See how to use SpectrogramJS</a></p>
-
-    <div id="vis" class="spectrogram"></div>
-    <div id="vis2" class="spectrogram"></div>
-
     <script type="text/javascript" src="js/d3.v5.min.js"></script>
     <script type="text/javascript" src="js/spectrogram.js"></script>
+
+    <h1>Sondata</h1>
+
+    <div id="vis" class="spectrogram"></div>
+
     <script>
-        var sample = new Spectrogram('data/bird_short.ogg', "#vis", {
+        var spectrogram = new Spectrogram('data/bird_short.ogg', "#vis", {
             width: 600,
             height: 300
         });
-
-        var sample2 = new Spectrogram('data/whistle_short.ogg', "#vis2", {
-            width: 600,
-            height: 300,
-            colorScheme: ['#440154', '#472877', '#3e4a89', '#31688d', '#26838e', '#1f9e89', '#36b778', '#6dcd59', '#b4dd2c', '#fde725']
-        });
     </script>
+
 
 </body>
 

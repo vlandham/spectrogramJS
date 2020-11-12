@@ -1,0 +1,7 @@
+body{
+    font-family: sans-serif;
+}
+
+#progress-line {
+    stroke: #e7bb41;
+}
