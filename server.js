@@ -86,7 +86,7 @@ app.post('/auth', function(req, res) {
         // console.log(results[0]);
         // console.log(results[0]['ID']);
         req.session.userid = results[0]['ID'];
-				res.redirect('/ajax test.html');
+				res.redirect('/directory.html');
 			} else {
 				res.send('Incorrect Username and/or Password!');
 			}			
@@ -104,7 +104,7 @@ app.get("/file", function(req,res){
     res.sendFile(path.join(__dirname, "file/" + req.session.username + "/" + req.query.file))
 	} else {
     res.status(401)
-		res.send('Please login to view this page!');
+		// res.redirect('login.html');
 	}
 });
 
