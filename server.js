@@ -45,37 +45,43 @@ app.use('/', express.static(path.join(__dirname, 'public')))
 // });
 
 app.all("/database",function(req,res){
-  var sql = "select * from audio_config"
-  var params = []
-  db.all(sql, params, (err, rows) => {
-    if (err) {
-      res.status(400).json({"error":err.message});
-      return;
-    }
-    res.json({
-        "message": "success",
-        "data": rows
-    })
-  });
+  if (req.session.loggedin){
+    var sql = "select * from audio_config"
+    var params = []
+    db.all(sql, params, (err, rows) => {
+      if (err) {
+        res.status(400).json({"error":err.message});
+        return;
+      }
+      res.json({
+          "message": "success",
+          "data": rows
+      })
+    });
+  }
+  else {res.redirect('/directory.html');}
 });
 
 app.all("/getfilelist",function(req,res){
-  console.log(req.session.userid, req.session.username)
-  db.all('select * from audio_config where user_id = ?', [req.session.userid], (err, rows) => {
-    console.log(rows)
-    if (err) {
-      res.status(400).json({"error":err.message});
-      return;
-    }
-    res.json({
-        "message": "success",
-        "data": rows
-    })
-  });
+  if (req.session.loggedin){
+    db.all('select * from audio_config where user_id = ?', [req.session.userid], (err, rows) => {
+      if (err) {
+        res.status(400).json({"error":err.message});
+        return;
+      }
+      res.json({
+          "message": "success",
+          "data": rows
+      })
+    });
+  }
+  else {res.redirect('/')}
 });
 
 app.get('/', function(req, res) {
-	res.redirect('/login.html');
+  if (req.session.loggedin){
+    res.redirect('/login.html');
+  } else {red}
 });
 
 
@@ -105,31 +111,19 @@ app.get("/file", function(req,res){
   if (req.session.loggedin && req.query) {
     // console.log(req.session.username + "/" + req.query.file)
     res.sendFile(path.join(__dirname, "file/" + req.session.username + "/" + req.query.file))
-	} else {
-    res.status(401)
-		// res.redirect('login.html');
-	}
+	} else {res.redirect('/')}
 });
 
 
 app.post('/upload_audio', async (req, res) => {
   if (req.session.loggedin){
-    console.log("logged in")
     try {
       if(!req.files) {
-        console.log("no files")
         res.send({
             status: false,
             message: 'No file uploaded'
         });
       } else {
-        console.log("files")
-
-        //Use the name of the input field (i.e. "avatar") to retrieve the uploaded file
-        console.log(req.files.fileUploaded)
-        
-        //Use the mv() method to place the file in upload directory (i.e. "uploads")
-        console.log('./file/' + req.session.username + "/" + req.files.fileUploaded.name)
         req.files.fileUploaded.mv('./file/' + req.session.username + "/" + req.files.fileUploaded.name);
 
         //send response
