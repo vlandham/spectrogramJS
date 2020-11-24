@@ -23,7 +23,7 @@ const credentials = {
 }
 
 const httpPort = 3000;
-const httpsPort = 443;
+const httpsPort = 5500;
 
 app.use(fileUpload({
   createParentPath: true
@@ -80,8 +80,8 @@ app.all("/getfilelist",function(req,res){
 
 app.get('/', function(req, res) {
   if (req.session.loggedin){
-    res.redirect('/login.html');
-  } else {red}
+    res.redirect('/directory.html');
+  } else {res.redirect('/login.html')}
 });
 
 
