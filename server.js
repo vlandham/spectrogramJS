@@ -1,6 +1,7 @@
 const express = require('express');
 var bodyParser = require('body-parser')
 
+const fileUpload = require('express-fileupload');
 var session = require('express-session')
 
 const app = express();
@@ -23,6 +24,10 @@ const credentials = {
 
 const httpPort = 3000;
 const httpsPort = 443;
+
+app.use(fileUpload({
+  createParentPath: true
+}));
 
 app.use(session({
 	secret: 'secret',
@@ -83,8 +88,6 @@ app.post('/auth', function(req, res) {
 			if (results.length > 0) {
 				req.session.loggedin = true;
         req.session.username = username;
-        // console.log(results[0]);
-        // console.log(results[0]['ID']);
         req.session.userid = results[0]['ID'];
 				res.redirect('/directory.html');
 			} else {
@@ -109,6 +112,38 @@ app.get("/file", function(req,res){
 });
 
 
+app.post('/upload_audio', async (req, res) => {
+  if (req.session.loggedin){
+    console.log("logged in")
+    try {
+      if(!req.files) {
+        console.log("no files")
+        res.send({
+            status: false,
+            message: 'No file uploaded'
+        });
+      } else {
+        console.log("files")
+
+        //Use the name of the input field (i.e. "avatar") to retrieve the uploaded file
+        console.log(req.files.fileUploaded)
+        
+        //Use the mv() method to place the file in upload directory (i.e. "uploads")
+        console.log('./file/' + req.session.username + "/" + req.files.fileUploaded.name)
+        req.files.fileUploaded.mv('./file/' + req.session.username + "/" + req.files.fileUploaded.name);
+
+        //send response
+        res.send({
+            status: true,
+            message: 'File is uploaded',
+        });
+      }
+    } catch (err) {
+        res.status(500).send(err);
+    }
+  }
+  else {res.redirect('/')}
+});
 
 
 // app.listen(PORT, HOST, () => console.log(`Server listening on port: ${PORT}`));
