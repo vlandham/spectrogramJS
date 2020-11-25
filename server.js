@@ -22,8 +22,7 @@ const credentials = {
   rejectUnauthorized: false
 }
 
-const httpPort = 3000;
-const httpsPort = 5500;
+const httpsPort = 443;
 
 app.use(fileUpload({
   createParentPath: true
@@ -69,9 +68,14 @@ app.all("/getfilelist",function(req,res){
         res.status(400).json({"error":err.message});
         return;
       }
+      arr = []
+      for (i = 0; i < rows.length; i++) {
+        arr.push(rows[i]['audio_location'])
+      }
+
       res.json({
           "message": "success",
-          "data": rows
+          "data": arr
       })
     });
   }
@@ -119,17 +123,19 @@ app.post('/upload_audio', async (req, res) => {
   if (req.session.loggedin){
     try {
       if(!req.files) {
-        res.send({
-            status: false,
-            message: 'No file uploaded'
-        });
+        console.log("no files")
+        res.status(500).end('No file uploaded');
       } else {
         req.files.fileUploaded.mv('./file/' + req.session.username + "/" + req.files.fileUploaded.name);
-
-        //send response
-        res.send({
-            status: true,
-            message: 'File is uploaded',
+        
+        db.run('INSERT INTO audio_config (user_id, audio_location) VALUES (?, ?)', [req.session.userid, req.files.fileUploaded.name], function(err) {
+          console.log(err)
+          //send response
+          res.send({
+              status: 200,
+              message: 'File is uploaded',
+              success: "Updated Successfully"
+          });
         });
       }
     } catch (err) {
@@ -139,15 +145,7 @@ app.post('/upload_audio', async (req, res) => {
   else {res.redirect('/')}
 });
 
-
-// app.listen(PORT, HOST, () => console.log(`Server listening on port: ${PORT}`));
-
-// var httpServer = http.createServer(app);
 var httpsServer = https.createServer(credentials, app);
-
-// httpServer.listen(httpPort, "192.168.1.166", () => {
-//   console.log("Http server listing on port : " + httpPort)
-// });
 
 httpsServer.listen(httpsPort, "localhost", () => {
   console.log("Https server listing on port : " + httpsPort)

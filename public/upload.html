@@ -3,12 +3,38 @@
 <head>
   <title>Upload</title>
   <link rel='stylesheet' href='/stylesheets/style.css' />
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+
+  <script src="js/file_access.js"></script>
 </head>
 <body>
   <h1>Sondata Upload</h1>
-  <form method='post' action='upload_audio' enctype="multipart/form-data">
+  <form id="uploadForm" action="/upload_audio" method="post" enctype="multipart/form-data">
     <input type='file' name='fileUploaded'>
     <input type='submit'>
+    <span id = "status"></span>
   </form>
+
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery.form/3.51/jquery.form.min.js"></script>
+<!-- 
+<script>
+$(document).ready(function() {
+  $('#uploadForm').submit(function() {
+      $("#status").empty().text("File is uploading...");
+      $(this).ajaxSubmit({
+        error: function(err) {
+          status('Error: ' + err.status);
+        },
+        success: function(response) {
+          $("#status").empty().text(response);
+          console.log(response);
+        }
+      });
+     //Very important line, it disable the page refresh.
+    return false;
+  });
+});
+</script> -->
 </body>
 </html>

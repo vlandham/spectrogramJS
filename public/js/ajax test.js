@@ -4,8 +4,8 @@ $(document).ready(function(){
       url: "\\getfilelist", 
       success: function(result){
         console.log(result)
-        console.log(result.data[0]['audio_location'])
-        play("file?file=" + result.data[0]['audio_location'])        
+        console.log(result.data[0])
+        play("file?file=" + result.data[0])        
       }
     });
   });
