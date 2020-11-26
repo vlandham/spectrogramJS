@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link href="css/spectrogram.css" media="screen" rel="stylesheet" type="text/css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+    <link rel="stylesheet" href="css/style.css">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <script src="js/file_access.js"></script>
+
+    <title>Sondata</title>
+</head>
+
+<body>
+    <!-- <form onsubmit="upload_file()" enctype="multipart/form-data">
+        <input type='file' name='fileUploaded'>
+        <input type='submit'>
+    </form> -->
+
+    <select id="user_uploads", onchange=loadAudio(this)></select>
+
+    <script type="text/javascript" src="js/d3.v5.min.js"></script>
+    <script type="text/javascript" src="js/spectrogram.js"></script>
+
+    <h1>Sondata</h1>
+
+    <div id="vis" class="spectrogram"></div>
+
+    <script>
+        var spectrogram;
+
+        function loadAudio(obj){
+            console.log(spectrogram)
+            if (!spectrogram){
+                spectrogram = new Spectrogram("file?file=" + obj.value, "#vis", {
+                    width: 600,
+                    height: 300
+                });
+            }
+            else {
+                $("#vis").empty();
+                
+                delete spectrogram;
+
+                spectrogram = new Spectrogram("file?file=" + obj.value, "#vis", {
+                    width: 600,
+                    height: 300
+                });
+            }
+        }
+    </script>
+
+    <script>
+        updateSelect()
+
+        function updateSelect() {
+            getUserAudioFiles(function(arr){
+                select = $('#user_uploads').get(0)
+
+                arr.forEach(element => {
+                    option = document.createElement('option');
+                    option.setAttribute(element, element);
+                    option.appendChild(document.createTextNode(element));
+                    select.appendChild(option);
+                });
+            }) 
+        }
+
+               
+    </script>
+</body>
+
+</html>
