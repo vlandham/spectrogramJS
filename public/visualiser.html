@@ -3,18 +3,23 @@
 
 <head>
     <link href="css/spectrogram.css" media="screen" rel="stylesheet" type="text/css" />
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script src="https://d3js.org/d3.v3.min.js"></script>
 
     <link rel="stylesheet" href="css/style.css">
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <script src="js/file_access.js"></script>
 
     <title>Sondata</title>
 </head>
 
 <body>
+	<script type="text/javascript" src="js/lib/d3.v5.min.js"></script>
+	<script src="js/lib/canvas-to-image.min.js"></script>
+	<script type="text/javascript" src="js/spectrogram.js"></script>
+	<script src="js/file_access.js"></script>
+
     <!-- <form onsubmit="upload_file()" enctype="multipart/form-data">
         <input type='file' name='fileUploaded'>
         <input type='submit'>
@@ -22,12 +27,7 @@
 
     <select id="user_uploads", onchange=loadAudio(this)></select>
 
-    <script type="text/javascript" src="js/d3.v5.min.js"></script>
-    <script type="text/javascript" src="js/spectrogram.js"></script>
-
-    <h1>Sondata</h1>
-
-    <div id="vis" class="spectrogram"></div>
+	<div id="vis" class="spectrogram"></div>
 
     <script>
         var spectrogram;
@@ -49,7 +49,22 @@
                     width: 600,
                     height: 300
                 });
-            }
+			}
+
+			// Save button
+			$("#vis").append(
+				"<button id='saveButton'>Export Image</button>"
+			)
+
+			// Save button logic
+			let vis_canvas = d3.select('#vis_canvas');
+			d3.select('#saveButton').on('click', function(){
+				canvasToImage('vis_canvas', {
+					name: 'spectrogram',
+					type: 'png',
+					quality: 1
+				})
+			});
         }
     </script>
 
@@ -67,10 +82,10 @@
                     select.appendChild(option);
                 });
             }) 
-        }
+		}
 
                
-    </script>
+	</script>
 </body>
 
 </html>

@@ -217,7 +217,8 @@ class Spectrogram {
 
         this.canvas = d3.select(this.selector)
             .append('canvas')
-            .attr('class', 'vis_canvas')
+			.attr('class', 'vis_canvas')
+			.attr('id', 'vis_canvas')
             .attr('width', this.width)
             .attr('height', this.height)
             .style('padding', d3.map(this.margin).values().join('px ') + 'px');
@@ -225,7 +226,7 @@ class Spectrogram {
         this.svg = d3.select(this.selector)
             .append('svg')
             .attr('width', this.width + this.margin.left + this.margin.right)
-            .attr('height', this.height + this.margin.top + this.margin.bottom)
+			.attr('height', this.height + this.margin.top + this.margin.bottom)
             .call(this.zoom)
             .append('g')
             .attr('transform', 'translate(' + this.margin.left + ',' + this.margin.top + ')');
